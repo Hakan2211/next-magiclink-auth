@@ -1,4 +1,3 @@
-// app/page.tsx
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';

@@ -9,7 +9,17 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json();
+  const { email, website } = await req.json();
+
+  // Honeypot check
+  if (website) {
+    console.warn('Honeypot triggered on enroll by email:', email);
+    // Optionally log this attempt
+    return NextResponse.json(
+      { message: 'Bot detected. Access denied.' },
+      { status: 400 }
+    );
+  }
 
   try {
     // Check if user already exists with 'paid' status

@@ -11,7 +11,17 @@ const supabase = createClient(
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json();
+  const { email, website } = await req.json();
+
+  //honeypot check
+  if (website) {
+    console.warn('Honeypot triggered on login by email:', email);
+    // You can optionally log this attempt
+    return NextResponse.json(
+      { message: 'Bot detected. Access denied.' },
+      { status: 400 }
+    );
+  }
 
   const { data: user } = await supabase
     .from('users')
