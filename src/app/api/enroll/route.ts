@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     console.warn('Honeypot triggered on enroll by email:', email);
     // Optionally log this attempt
     return NextResponse.json(
-      { message: 'Bot detected. Access denied.' },
+      { message: 'Bot detected. Access denied.', type: 'error' },
       { status: 400 }
     );
   }
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (selectError && selectError.code !== 'PGRST116') {
       console.error('Error checking user:', selectError);
       return NextResponse.json(
-        { message: 'Error checking user status' },
+        { message: 'Error checking user status', type: 'error' },
         { status: 500 }
       );
     }
@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
     // If user already paid, return message to the frontend
     if (existingUser) {
       return NextResponse.json({
-        message: 'You are already enrolled.',
+        message: 'You are already enrolled. Please log in.',
+        type: 'error',
         redirectToLogin: true,
       });
     }
@@ -56,13 +57,14 @@ export async function POST(req: NextRequest) {
     if (upsertError) {
       console.error('Error upserting user:', upsertError);
       return NextResponse.json(
-        { message: 'Error enrolling user' },
+        { message: 'Error enrolling user', type: 'error' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
-      message: 'User enrolled successfully',
+      message: 'You were successfully enrolled. Proceeding to payment.',
+      type: 'success',
       redirectToPayment: true,
     });
   } catch (error) {

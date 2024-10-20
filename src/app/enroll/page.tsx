@@ -4,17 +4,19 @@ import { useState } from 'react';
 
 export default function EnrollPage() {
   const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState<{
+    text: string;
+    type: 'success' | 'error';
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [website, setWebsite] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setMessage(null);
 
     try {
-      // First, send email to enroll route
       const enrollResponse = await fetch('/api/enroll', {
         method: 'POST',
         body: JSON.stringify({ email, website }),
@@ -23,31 +25,55 @@ export default function EnrollPage() {
 
       const enrollData = await enrollResponse.json();
 
-      // Check if user is already enrolled or has errors
-      if (enrollData.redirectToLogin) {
-        setError('You are already enrolled. Please log in.');
+      if (!enrollResponse.ok) {
+        setMessage({
+          text: enrollData.message || 'An error occurred.',
+          type: 'error',
+        });
         setLoading(false);
         return;
       }
 
-      // Then, create a checkout session
-      const checkoutResponse = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (enrollData.redirectToLogin) {
+        setMessage({
+          text:
+            enrollData.message || 'You are already enrolled. Please log in.',
+          type: 'error',
+        });
+        setLoading(false);
+        return;
+      }
 
-      const checkoutData = await checkoutResponse.json();
+      if (enrollData.redirectToPayment) {
+        const checkoutResponse = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+          headers: { 'Content-Type': 'application/json' },
+        });
 
-      // Redirect to Stripe checkout
-      if (checkoutData.url) {
-        window.location.href = checkoutData.url;
+        const checkoutData = await checkoutResponse.json();
+
+        if (checkoutData.url) {
+          window.location.href = checkoutData.url;
+        } else {
+          setMessage({
+            text: 'Failed to create checkout session.',
+            type: 'error',
+          });
+          setLoading(false);
+        }
       } else {
-        setError('Failed to create checkout session.');
+        setMessage({
+          text: enrollData.message || 'Enrollment completed.',
+          type: 'success',
+        });
         setLoading(false);
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setMessage({
+        text: 'An error occurred. Please try again.',
+        type: 'error',
+      });
       setLoading(false);
     }
   };
@@ -63,6 +89,7 @@ export default function EnrollPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Your email"
         />
+        {/* Honeypot field */}
         <input
           type="text"
           name="website"
@@ -76,7 +103,12 @@ export default function EnrollPage() {
           {loading ? 'Processing...' : 'Enroll'}
         </button>
       </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {/* Display message */}
+      {message && (
+        <p style={{ color: message.type === 'error' ? 'red' : 'green' }}>
+          {message.text}
+        </p>
+      )}
     </div>
   );
 }

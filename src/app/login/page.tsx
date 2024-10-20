@@ -1,24 +1,60 @@
-// app/login/page.tsx
 'use client';
 
 import { useState } from 'react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<{
+    text: string;
+    type: 'success' | 'error';
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
   const [website, setWebsite] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage(null);
 
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, website }),
-      headers: { 'Content-Type': 'application/json' },
-    });
+    //   const res = await fetch('/api/login', {
+    //     method: 'POST',
+    //     body: JSON.stringify({ email, website }),
+    //     headers: { 'Content-Type': 'application/json' },
+    //   });
 
-    const data = await res.json();
-    setMessage(data.message);
+    //   const data = await res.json();
+    //   setMessage(data.message);
+    // };
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, website }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage({
+          text: data.message || 'An error occurred.',
+          type: 'error',
+        });
+        setLoading(false);
+        return;
+      }
+
+      setMessage({
+        text: data.message || 'Check your email for the magic link.',
+        type: 'success',
+      });
+      setLoading(false);
+    } catch (err) {
+      setMessage({
+        text: 'An error occurred. Please try again.',
+        type: 'error',
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,9 +77,15 @@ export default function LoginPage() {
           tabIndex={-1}
           autoComplete="off"
         />
-        <button type="submit">Send Magic Link</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Processing...' : 'Send Magic Link'}
+        </button>
       </form>
-      {message && <p>{message}</p>}
+      {message && (
+        <p style={{ color: message.type === 'error' ? 'red' : 'green' }}>
+          {message.text}
+        </p>
+      )}
     </div>
   );
 }

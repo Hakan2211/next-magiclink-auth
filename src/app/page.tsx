@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import LogoutButton from './components/emails/ui/LogoutButton';
 
 export default async function HomePage() {
   const cookieStore = cookies();
@@ -42,7 +43,7 @@ export default async function HomePage() {
           <p>Welcome back, {userEmail}!</p>
           <Link href="/course">Go to Course</Link>
           {' | '}
-          <Link href="/logout">Logout</Link>
+          <LogoutButton />
         </>
       )}
     </div>

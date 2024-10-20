@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     console.warn('Honeypot triggered on login by email:', email);
     // You can optionally log this attempt
     return NextResponse.json(
-      { message: 'Bot detected. Access denied.' },
+      { message: 'Bot detected. Access denied.', type: 'error' },
       { status: 400 }
     );
   }
@@ -30,28 +30,44 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!user) {
-    return NextResponse.json({
-      message: 'Email not found. Please enroll first.',
-    });
+    return NextResponse.json(
+      {
+        message: 'Email not found. Please enroll first.',
+        type: 'error',
+      },
+      { status: 404 }
+    );
   }
 
   if (user.paymentStatus !== 'paid') {
-    return NextResponse.json({
-      message: 'You need to enroll before logging in.',
-    });
+    return NextResponse.json(
+      {
+        message: 'You need to enroll before logging in.',
+        type: 'error',
+      },
+      { status: 403 }
+    );
   }
 
   // Generate magic link token
   const magicLinkToken = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('users')
     .update({
       magic_link_token: magicLinkToken,
       magic_link_expires_at: expiresAt,
     })
     .eq('email', email);
+
+  if (updateError) {
+    console.error('Error updating magic link token:', updateError);
+    return NextResponse.json(
+      { message: 'Error generating magic link.', type: 'error' },
+      { status: 500 }
+    );
+  }
 
   // Send magic link email
   const magicLinkUrl = `${process.env.NEXT_PUBLIC_DOMAIN}/verify?token=${magicLinkToken}`;
@@ -63,5 +79,11 @@ export async function POST(req: NextRequest) {
     react: React.createElement(MagicLinkEmail, { url: magicLinkUrl }),
   });
 
-  return NextResponse.json({ message: 'Magic link sent to your email.' });
+  return NextResponse.json(
+    {
+      message: 'Magic link sent to your email.',
+      type: 'success',
+    },
+    { status: 200 }
+  );
 }
