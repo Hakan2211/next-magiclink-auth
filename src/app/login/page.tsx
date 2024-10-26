@@ -1,6 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+
+const emailSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email adress' }),
+});
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,15 +22,23 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
 
-    //   const res = await fetch('/api/login', {
-    //     method: 'POST',
-    //     body: JSON.stringify({ email, website }),
-    //     headers: { 'Content-Type': 'application/json' },
-    //   });
-
-    //   const data = await res.json();
-    //   setMessage(data.message);
-    // };
+    try {
+      emailSchema.parse({ email });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setMessage({
+          text: error.errors[0].message,
+          type: 'error',
+        });
+      } else {
+        setMessage({
+          text: 'An unexpected error occurred.',
+          type: 'error',
+        });
+      }
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -77,9 +91,9 @@ export default function LoginPage() {
           tabIndex={-1}
           autoComplete="off"
         />
-        <button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading}>
           {loading ? 'Processing...' : 'Send Magic Link'}
-        </button>
+        </Button>
       </form>
       {message && (
         <p style={{ color: message.type === 'error' ? 'red' : 'green' }}>

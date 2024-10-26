@@ -1,6 +1,12 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { z } from 'zod';
+
+const emailSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email adress' }),
+});
 
 export default function EnrollPage() {
   const [email, setEmail] = useState('');
@@ -15,6 +21,24 @@ export default function EnrollPage() {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
+
+    try {
+      emailSchema.parse({ email });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setMessage({
+          text: error.errors[0].message,
+          type: 'error',
+        });
+      } else {
+        setMessage({
+          text: 'An unexpected error occurred.',
+          type: 'error',
+        });
+      }
+      setLoading(false);
+      return;
+    }
 
     try {
       const enrollResponse = await fetch('/api/enroll', {
@@ -99,9 +123,9 @@ export default function EnrollPage() {
           tabIndex={-1}
           autoComplete="off"
         />
-        <button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading}>
           {loading ? 'Processing...' : 'Enroll'}
-        </button>
+        </Button>
       </form>
       {/* Display message */}
       {message && (

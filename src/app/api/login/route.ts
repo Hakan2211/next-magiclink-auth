@@ -10,8 +10,18 @@ const supabase = createClient(
 );
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$/;
+
 export async function POST(req: NextRequest) {
   const { email, website } = await req.json();
+
+  // Validate the email with regex
+  if (!email || !emailRegex.test(email)) {
+    return NextResponse.json(
+      { message: 'Please enter a valid email address.', type: 'error' },
+      { status: 400 }
+    );
+  }
 
   //honeypot check
   if (website) {
